@@ -8,7 +8,7 @@ interface Package {
   price: number;
   description: string;
   month: number;
-  [key: string]: string | number;
+  returns: number; // Added returns field
 }
 
 const EditPackage: React.FC = () => {
@@ -20,6 +20,7 @@ const EditPackage: React.FC = () => {
     price: 0,
     description: "",
     month: 0,
+    returns: 0, // Initialized returns field
   });
 
   useEffect(() => {
@@ -41,7 +42,6 @@ const EditPackage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching package details:", error);
-      // Handle error (e.g., display error message to the user)
     }
   };
 
@@ -62,12 +62,10 @@ const EditPackage: React.FC = () => {
       return;
     }
     try {
-      await updateDoc(doc(db, "packages", id), formData as Package);
-      // Redirect user to package list or another page after successful update
+      await updateDoc(doc(db, "packages", id), formData);
       navigate("/");
     } catch (error) {
       console.error("Error updating package:", error);
-      // Handle error (e.g., display error message to the user)
     }
   };
 
@@ -134,6 +132,24 @@ const EditPackage: React.FC = () => {
             onChange={handleChange}
             className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
             placeholder="Enter month"
+            required
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="returns"
+            className="text-sm font-medium text-gray-700"
+          >
+            Returns (%)
+          </label>
+          <input
+            type="number"
+            id="returns"
+            name="returns"
+            value={formData.returns}
+            onChange={handleChange}
+            className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+            placeholder="Enter returns"
             required
           />
         </div>
