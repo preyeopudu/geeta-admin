@@ -1,18 +1,28 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useDispatch } from "react-redux";
+import { setIsLoading } from "../features/app_slice";
 
 interface Package {
   name: string;
   price: number;
   description: string;
   month: number;
-  returns: number; // Added returns field
+  returns: number;
+  [key: string]: string | number;
 }
 
 const EditPackage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<Package>({
@@ -20,8 +30,30 @@ const EditPackage: React.FC = () => {
     price: 0,
     description: "",
     month: 0,
-    returns: 0, // Initialized returns field
+    returns: 0,
   });
+
+  const fetchPackageDetails = useCallback(
+    async (id: string) => {
+      try {
+        dispatch(setIsLoading(true));
+
+        const packageDoc = await getDoc(doc(db, "packages", id));
+        if (packageDoc.exists()) {
+          const data = packageDoc.data() as Package;
+          setFormData(data);
+        } else {
+          console.error("Package not found");
+        }
+      } catch (error) {
+        console.error("Error fetching package details:", error);
+        // Handle error (e.g., display error message to the user)
+      } finally {
+        dispatch(setIsLoading(false));
+      }
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
     if (id) {
@@ -29,21 +61,7 @@ const EditPackage: React.FC = () => {
     } else {
       console.error("Package ID is undefined");
     }
-  }, [id]);
-
-  const fetchPackageDetails = async (id: string) => {
-    try {
-      const packageDoc = await getDoc(doc(db, "packages", id));
-      if (packageDoc.exists()) {
-        const data = packageDoc.data() as Package;
-        setFormData(data);
-      } else {
-        console.error("Package not found");
-      }
-    } catch (error) {
-      console.error("Error fetching package details:", error);
-    }
-  };
+  }, [fetchPackageDetails, id]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -62,10 +80,16 @@ const EditPackage: React.FC = () => {
       return;
     }
     try {
-      await updateDoc(doc(db, "packages", id), formData);
+      dispatch(setIsLoading(true));
+
+      await updateDoc(doc(db, "packages", id), formData as Package);
+      // Redirect user to package list or another page after successful update
       navigate("/");
     } catch (error) {
       console.error("Error updating package:", error);
+      // Handle error (e.g., display error message to the user)
+    } finally {
+      dispatch(setIsLoading(false));
     }
   };
 
@@ -105,6 +129,24 @@ const EditPackage: React.FC = () => {
         </div>
         <div>
           <label
+            htmlFor="returns"
+            className="text-sm font-medium text-gray-700"
+          >
+            Return
+          </label>
+          <input
+            type="number"
+            id="returns"
+            name="returns"
+            value={formData.returns}
+            onChange={handleChange}
+            className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+            placeholder="Enter returns"
+            required
+          />
+        </div>
+        <div>
+          <label
             htmlFor="description"
             className="text-sm font-medium text-gray-700"
           >
@@ -132,24 +174,6 @@ const EditPackage: React.FC = () => {
             onChange={handleChange}
             className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
             placeholder="Enter month"
-            required
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="returns"
-            className="text-sm font-medium text-gray-700"
-          >
-            Returns (%)
-          </label>
-          <input
-            type="number"
-            id="returns"
-            name="returns"
-            value={formData.returns}
-            onChange={handleChange}
-            className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-            placeholder="Enter returns"
             required
           />
         </div>
